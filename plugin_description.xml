@@ -1,0 +1,9 @@
+<library path="lib/libcomp3431_starter_rviz_library">
+  <class name="comp3431/ControlsRVizDisplay"
+         type="comp3431::ControlsRVizDisplay"
+         base_class_type="rviz::Display">
+    <description>
+      Control panel for Turtlebots
+    </description>
+  </class>
+</library>
