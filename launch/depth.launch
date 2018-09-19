@@ -1,8 +1,0 @@
-<!-- Launch just the timothyw test node -->
-<launch >
-    <node pkg="comp3431_starter" type="comp3431_starter_depth" name="comp3431_starter_depth" output="screen">
-        <remap from="~/depth" to="/camera/depth/image_rect" />
-        <rosparam>
-        </rosparam>
-    </node>
-</launch>

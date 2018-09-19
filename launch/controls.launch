@@ -1,7 +1,0 @@
-<!-- Launch just the timothyw test node -->
-<launch >
-    <node pkg="comp3431_starter" type="comp3431_starter_controls" name="comp3431_starter_controls" output="screen">
-        <rosparam>
-        </rosparam>
-    </node>
-</launch>
