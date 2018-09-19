@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(comp3431_starter)
+project(stalker)
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
@@ -27,10 +27,9 @@ find_package(OpenCV)
 #######################################
 
 ##Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  BeaconInfo.msg
-)
+#add_message_files(
+#   FILES
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -76,13 +75,6 @@ include_directories(include
 #file(GLOB_RECURSE QT_MOC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} include/comp3431_starter/rviz/**.hpp)
 #QT4_WRAP_CPP(QT_MOC_HPP ${QT_MOC})
 
-## Starter library with all common code
-add_library(comp3431_starter_library
-    src/beacon.cpp
-    #src/controlReceive.cpp
-    src/depth.cpp
-    src/wallFollow.cpp
-)
 
 ## GUI Specific Libraries
 #add_library(comp3431_starter_rviz_library
@@ -92,100 +84,16 @@ add_library(comp3431_starter_library
 #)
 
 ## Declaring all Nodes
-add_executable(comp3431_starter_beacons
-    src/nodes/beacon_node.cpp
-)
-#add_executable(comp3431_starter_controls
-#    src/nodes/controls_node.cpp
-#)
-add_executable(comp3431_starter_depth
-    src/nodes/depth_node.cpp
-)
-add_executable(comp3431_starter_wallfollow
-    src/nodes/wallFollow_node.cpp
-)
 
-add_executable(comp3431_starter_imagerecorder
-    src/image_recorder.cpp
+add_executable(simple_follow
+    src/simple_follow.cpp
 )
-
-add_executable(comp3431_starter_beaconmarker
-    src/beacon_marker.cpp
-)
-
-add_executable(comp3431_starter_navcontrol
-    src/nav_control.cpp
-)
-
-add_executable(comp3431_starter_path
-    src/path.cpp
-)
-
-add_executable(comp3431_starter_follower
-    src/nodes/simple_follow.cpp
-)
-
-add_dependencies(comp3431_starter_imagerecorder ${${PROJECT_NAME}_EXPORTED_TARGETS})
-add_dependencies(comp3431_starter_imagerecorder ${catkin_EXPORTED_TARGETS})
-
 ## Specify libraries to link a library or executable target against
-target_link_libraries(comp3431_starter_library
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
-target_link_libraries(comp3431_starter_beacons
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-  comp3431_starter_library
-)
-target_link_libraries(comp3431_starter_depth
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-  comp3431_starter_library
-)
-target_link_libraries(comp3431_starter_wallfollow
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-  comp3431_starter_library
-)
-target_link_libraries(comp3431_starter_imagerecorder
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-  comp3431_starter_library
-)
-target_link_libraries(comp3431_starter_beaconmarker
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-  comp3431_starter_library
-)
-target_link_libraries(comp3431_starter_navcontrol
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-  comp3431_starter_library
-)
-target_link_libraries(comp3431_starter_path
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-  comp3431_starter_library
-)
 
-target_link_libraries(comp3431_starter_follower
+target_link_libraries(simple_follow
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
-  comp3431_starter_library
 )
-#target_link_libraries(comp3431_starter_controls
-#  ${catkin_LIBRARIES}
-#  ${OpenCV_LIBRARIES}
-#  comp3431_starter_library
-#)
-#target_link_libraries(comp3431_starter_rviz_library
-#  ${catkin_LIBRARIES}
-#  ${OpenCV_LIBRARIES}
-#  ${QT_LIBRARIES}
-#  comp3431_starter_library
-#)
-
 
 #############
 ## Install ##

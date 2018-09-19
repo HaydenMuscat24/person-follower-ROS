@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-    <name>comp3431_starter</name>
+    <name>stalker</name>
     <version>1.0.0</version>
     <description>ours</description>
 
@@ -14,13 +14,6 @@
     <!-- Commonly used license strings: -->
     <!--     BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
     <license>TODO</license>
-
-
-    <!-- Url tags are optional, but mutiple are allowed, one per tag -->
-    <!-- Optional attribute type can be: website, bugtracker, or repository -->
-    <!-- Example: -->
-    <!-- <url type="website">http://ros.org/wiki/victim_id</url> -->
-
 
     <!-- Author tags are optional, mutiple are allowed, one per tag -->
     <!-- Authors do not have to be maintianers, but could be -->

@@ -2,12 +2,12 @@
 #include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Float64.h>
 #include <tf/transform_listener.h>
-#include <comp3431_starter/BeaconInfo.h>
 
 void cb_scan(const sensor_msgs::LaserScanConstPtr& scan);
 void cb_command(const std_msgs::StringConstPtr& command);
-void cb_angle(const comp3431_starter::BeaconInfoConstPtr& message);
+void cb_angle(const std_msgs::Float64ConstPtr& angle_msg);
 void stop_robot();
 
 #define BASE_FRAME  "base_link"
@@ -42,7 +42,7 @@ int main( int argc, char** argv ) {
     // subscribers and publishers
     scanSub    = nh.subscribe<sensor_msgs::LaserScan>("scan", 1, &cb_scan);
     commandSub = nh.subscribe<std_msgs::String>("cmd", 1, &cb_command);
-    angleSub   = nh.subscribe<comp3431_starter::BeaconInfo>("/beacon", 5, &cb_angle);
+    angleSub   = nh.subscribe<std_msgs::Float64>("/angle", 5, &cb_angle);
     twistPub   = nh.advertise<geometry_msgs::Twist >("cmd_vel", 1, false);
 
     // pretty much done
@@ -144,9 +144,9 @@ void cb_scan(const sensor_msgs::LaserScanConstPtr& scan) {
     angle -= 0.7 * angle * MAX_TURN;
 }
 
-void cb_angle(const comp3431_starter::BeaconInfoConstPtr& message) {
+void cb_angle(const std_msgs::Float64ConstPtr& angle_msg) {
     last_angle_time = ros::Time::now().toSec();
-    angle = message->angle / 10.0 * -1.0;
+    angle = angle_msg->data / 10.0 * -1.0;
     if (abs(angle) > 1) angle = angle / abs(angle);
 }
 
