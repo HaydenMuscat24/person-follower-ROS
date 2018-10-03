@@ -88,11 +88,20 @@ include_directories(include
 add_executable(simple_follow
     src/simple_follow.cpp
 )
+
+add_executable(person_marker
+    src/person_marker.cpp
+)
+
 ## Specify libraries to link a library or executable target against
 
 target_link_libraries(simple_follow
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
+)
+
+target_link_libraries(person_marker
+  ${catkin_LIBRARIES}
 )
 
 #############
