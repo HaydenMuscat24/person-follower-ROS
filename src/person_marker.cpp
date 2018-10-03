@@ -12,7 +12,6 @@ ros::Subscriber scanSub ;
 ros::Subscriber angleSub;
 ros::Publisher markerPub;
 float detected_angle;
-tf::TransformListener listener;
 
 int main( int argc, char** argv ) {
 	ros::init(argc, argv, "person_marker");
@@ -65,6 +64,7 @@ void cb_scan(const sensor_msgs::LaserScanConstPtr& scan) {
 	p.pose.orientation.z = 0.0;
 	p.pose.orientation.w = 1.0;
 
+	tf::TransformListener listener;
 	geometry_msgs::PoseStamped ret;
 	listener.transformPose("map", p, ret);     
 	marker.pose = ret.pose;
