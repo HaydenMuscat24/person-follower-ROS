@@ -20,7 +20,7 @@ int main( int argc, char** argv ) {
 	
 	scanSub    = nh.subscribe<sensor_msgs::LaserScan>("scan", 1, &cb_scan);
 	angleSub   = nh.subscribe<std_msgs::Float64>("/angle", 5, &cb_angle);
-	markerPub  = nh.advertise<geometry_msgs::Twist >("marker", 1, false);
+	markerPub  = nh.advertise<visualization_msgs::Marker >("marker", 1, false);
 
 	while (ros::ok()) {
 		ROS_INFO("Spinning");
@@ -65,6 +65,7 @@ void cb_scan(const sensor_msgs::LaserScanConstPtr& scan) {
 	p.pose.orientation.w = 1.0;
 
 	tf::TransformListener listener;
+	sleep(1);
 	geometry_msgs::PoseStamped ret;
 	listener.transformPose("map", p, ret);     
 	marker.pose = ret.pose;
