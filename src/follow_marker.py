@@ -52,17 +52,14 @@ def newCommand(c):
 def newScan(scan):
 	global drive
 
-	ROBOT_RADIUS      = 0.20
 	SLOWDOWN_DIST     = 2.0
-	MAX_SPEED         = 0.5
-	MAX_TURN          = 0.5
 	MIN_APPROACH_DIST = 0.5
 
 	distance = 1000000
 	laser_angle = scan.angle_min
 	n = 0
 
-	while (n < points.size()):
+	while n < len(scan.points):
 		if (-2 < laser_angle % 360 < 2):
 			distance = scan.ranges[n]
 
@@ -91,14 +88,18 @@ r = rospy.Rate(4)
 
 while not rospy.is_shutdown():
 	if paused:
+		speed.linear.x = 0.0
+		speed.angular.z = 0.0
+		twistPub.publish(speed)
+		r.sleep()
 		continue
 
 	remaining_x = goal_x - my_x
 	remaining_y = goal_y - my_y
 
-	if my_x - 1 < goal_x and goal_x < my_x + 1 and my_y - 1 < goal_y and goal_y < my_y + 1:
-		speed.linear.x = 1.0
-		speed.angular.z = 0.0
+	if my_x - 0.2 < goal_x and goal_x < my_x + 0.2 and my_y - 0.2 < goal_y and goal_y < my_y + 0.2:
+		speed.linear.x = 0.0
+		speed.angular.z = 0.5
 	else:
 		angle_to_goal = atan2(remaining_y, remaining_x)
 
