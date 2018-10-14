@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(stalker)
+project(pose)
+
+add_definitions(-std=c++11)
+add_definitions(-DUSE_CAFFE)
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
@@ -18,6 +21,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## Uncomment if using OpenCV
 ## OpenCV
 find_package(OpenCV)
+find_package(CUDA)
+find_package(gflags REQUIRED)
+find_package(OpenPose)
 
 # QT4 required for RViz plugins
 #find_package(Qt4 REQUIRED)
@@ -66,6 +72,7 @@ catkin_package(
 include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${OpenPose_INCLUDE_DIRS}
 )
 #INCLUDE(${QT_USE_FILE})
 #ADD_DEFINITIONS(${QT_DEFINITIONS})
@@ -85,22 +92,25 @@ include_directories(include
 
 ## Declaring all Nodes
 
-add_executable(simple_follow
-    src/simple_follow.cpp
+add_executable(openPoseTracker
+    src/openPoseTracker.cpp
 )
 
-add_executable(person_marker
-    src/person_marker.cpp
+add_executable(initaliser
+    src/initaliser.cpp
 )
+
 
 ## Specify libraries to link a library or executable target against
 
-target_link_libraries(simple_follow
+target_link_libraries(openPoseTracker
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
+  ${OpenPose_LIBS}
+	gflags
 )
 
-target_link_libraries(person_marker
+target_link_libraries(initaliser
   ${catkin_LIBRARIES}
 )
 
