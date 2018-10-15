@@ -32,15 +32,6 @@ find_package(OpenPose)
 ## Declare ROS messages and services ##
 #######################################
 
-##Generate messages in the 'msg' folder
-#add_message_files(
-#   FILES
-# )
-
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-# )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
@@ -74,22 +65,6 @@ include_directories(include
   ${OpenCV_INCLUDE_DIRS}
   ${OpenPose_INCLUDE_DIRS}
 )
-#INCLUDE(${QT_USE_FILE})
-#ADD_DEFINITIONS(${QT_DEFINITIONS})
-#ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
-
-## Add generated MOC Qt header files
-#file(GLOB_RECURSE QT_MOC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} include/comp3431_starter/rviz/**.hpp)
-#QT4_WRAP_CPP(QT_MOC_HPP ${QT_MOC})
-
-
-## GUI Specific Libraries
-#add_library(comp3431_starter_rviz_library
-#    src/rviz/controlPanel.cpp
-#
-#    ${QT_MOC_HPP}
-#)
-
 ## Declaring all Nodes
 
 add_executable(openPoseTracker
@@ -98,6 +73,10 @@ add_executable(openPoseTracker
 
 add_executable(initaliser
     src/initaliser.cpp
+)
+
+add_executable(simplefollow
+    src/simple_follow.cpp
 )
 
 
@@ -114,26 +93,13 @@ target_link_libraries(initaliser
   ${catkin_LIBRARIES}
 )
 
+target_link_libraries(simplefollow
+  ${catkin_LIBRARIES}
+)
+
 #############
 ## Install ##
 #############
-
-# all install targets should use catkin DESTINATION variables
-# See http://ros.org/doc/groovy/api/catkin/html/adv_user_guide/variables.html
-
-## Mark executable scripts (Python etc.) for installation
-## in contrast to setup.py, you can choose the destination
-# install(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-## Mark cpp header files for installation
-#install(DIRECTORY include/${PROJECT_NAME}/
-#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#  FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
-#  PATTERN ".svn" EXCLUDE
-#)
 
 ## Mark launch files for installation
 install(DIRECTORY launch/
