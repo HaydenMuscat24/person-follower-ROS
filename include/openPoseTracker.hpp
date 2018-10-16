@@ -67,6 +67,11 @@ struct Limb {
     std::string name;
 };
 
+struct Person {
+    int id;
+    float angle;
+};
+
 #define NUM_LIMBS  12   // changing this might require other code changes
 const Limb limbs[NUM_LIMBS] {
     {0,  0, 1,   0.6, 20, 10, "neck"},

@@ -1,22 +1,22 @@
 #include "openPoseTracker.hpp"
 
 #define IMAGE_PRINTING true
-#define HIST_PRINTING false // needs IMAGE_PRINTING true
-#define CORR_PRINTING true // needs IMAGE_PRINTING true
-#define LIMB_PRINTING true // needs IMAGE_PRINTING true
+#define HIST_PRINTING  false // needs IMAGE_PRINTING true
+#define CORR_PRINTING  true // needs IMAGE_PRINTING true
+#define LIMB_PRINTING  true // needs IMAGE_PRINTING true
 
 // discard use of limb if below this level
 #define MIN_POSE_KEY_CERTAINTY 0.3
 
 // for use in the histograms
 #define INIT_HIST_SAVES 20
-#define MIN_BRIGHTNESS 10
-#define SAT_FOR_GREY 30
+#define MIN_BRIGHTNESS  10
+#define SAT_FOR_GREY    30
 
 // minimum correlation to decide its the original person
 // and the minimum number of limbs that have had to have been measured to get such
 #define MIN_CORRELATION 0.70
-#define MIN_MATCHES 5
+#define MIN_MATCHES     5
 
 using namespace op;
 
@@ -30,7 +30,6 @@ Histogram originalLimbHist[NUM_LIMBS];
 int histsToSave[NUM_LIMBS];
 float originalVariances[NUM_LIMBS];
 
-bool initialising = true;
 volatile bool newImage = false;
 
 ros::Subscriber imgSub;
@@ -40,8 +39,10 @@ ros::Publisher  anglePub;
 
 // function declarations
 void imageCallback(const sensor_msgs::CompressedImage::ConstPtr& msg);
+void sendCommand(std::string string);
+void sendAngle(float angle);
 
-int centralPersonIdx(Array<float> poseKeypoints);
+Person centralPersonIdx(Array<float> poseKeypoints);
 float compareLimbHistograms(Array<float> poseKeypoints);
 void saveLimbHistogramsOf(Array<float> poseKeypoints, int person);
 void paintSavedLimbCircles();
@@ -118,11 +119,19 @@ int main(int argc, char** argv ) {
         poseExtractorCaffe.forwardPass(netInputArray, imageSize, scaleInputToNetInputs);
         const auto poseKeypoints = poseExtractorCaffe.getPoseKeypoints();
 
-        // find correspondences.
-        cvtColor(rgbImagePtr->image, hsvImage, cv::COLOR_BGR2HSV);
-        int centralPerson = centralPersonIdx(poseKeypoints);
-        if (centralPerson != -1) {
-            saveLimbHistogramsOf(poseKeypoints, centralPerson);
+        // find central person to scan.
+        Person centralPerson = centralPersonIdx(poseKeypoints);
+        if (centralPerson.id != -1) {
+
+            sendCommand("turn");
+            sendAngle(centralPerson.angle);
+
+            // only start scanning if angle small enough
+            if (fabs(centralPerson.angle) < 10) {
+
+                cvtColor(rgbImagePtr->image, hsvImage, cv::COLOR_BGR2HSV);
+                saveLimbHistogramsOf(poseKeypoints, centralPerson.id);
+            }
         }
 
         if (IMAGE_PRINTING) {
@@ -141,10 +150,6 @@ int main(int argc, char** argv ) {
     // ------------------------------------------------------------------------
     ROS_INFO("Histograms Saved, Tracking the person");
 
-    std_msgs::String msg;
-    msg.data = "start";
-    cmdPub.publish(msg);
-
     while(ros::ok()){
 
         // Wait for an image. Spin once allows a callback to occur
@@ -157,6 +162,7 @@ int main(int argc, char** argv ) {
         const auto poseKeypoints = poseExtractorCaffe.getPoseKeypoints();
 
         // find correspondences.
+        sendCommand("follow");
         cvtColor(rgbImagePtr->image, hsvImage, cv::COLOR_BGR2HSV);
         compareLimbHistograms(poseKeypoints);
 
@@ -168,6 +174,18 @@ int main(int argc, char** argv ) {
         // finally, reset the image lock, and go to the next section if done
         newImage = false;
     }
+}
+
+void sendCommand(std::string string) {
+    std_msgs::String msg;
+    msg.data = string;
+    cmdPub.publish(msg);
+}
+
+void sendAngle(float angle) {
+    std_msgs::Float32 msg;
+    msg.data = angle;
+    anglePub.publish(msg);
 }
 
 void imageCallback(const sensor_msgs::CompressedImage::ConstPtr& msg) {
@@ -426,13 +444,18 @@ void normaliseHistogram(Histogram &hist) {
     for (int i = 0; i < hist.size(); i++) hist[i] /= sum;
 }
 
+float toAngle(float x) {
+    float width = (float) IMG_WIDTH;
+    return (x - width/2) / (width/2) * (70/2) ;
+}
+
 // returns -1 if person not found with enough confidence
-int centralPersonIdx(Array<float> poseKeypoints) {
+Person centralPersonIdx(Array<float> poseKeypoints) {
 
     const int num_people = poseKeypoints.getSize(0);
     const int num_bodyparts = poseKeypoints.getSize(1);
 
-    int closestToCenter = -1;
+    Person best = {-1, -1000};
 
     for (int person_idx = 0; person_idx < num_people; person_idx++) {
         float avg_certainty = 0;
@@ -442,10 +465,16 @@ int centralPersonIdx(Array<float> poseKeypoints) {
             avg_certainty += poseKeypoints[final_idx+2];
             avg_x += poseKeypoints[final_idx+0];
         }
+
         avg_certainty /= (float) num_bodyparts;
-        avg_x /= (float) num_bodyparts;
-        // ROS_INFO("Person %d, prob: %lf, x: %lf", person_idx, avg_certainty,avg_x);
-        if (avg_certainty > MIN_POSE_KEY_CERTAINTY) closestToCenter = person_idx;
+        float angle = toAngle(avg_x / (float) num_bodyparts);
+
+        // update the best person
+        if (avg_certainty > MIN_POSE_KEY_CERTAINTY &&
+            fabs(angle)   < fabs(best.angle) ) {
+            best.id = person_idx;
+            best.angle = angle;
+        }
     }
-    return closestToCenter;
+    return best;
 }

@@ -3,11 +3,11 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
-#include <tf/transform_listener.h>
 
 void cb_scan(const sensor_msgs::LaserScanConstPtr& scan);
 void cb_command(const std_msgs::StringConstPtr& command);
 void cb_angle(const std_msgs::Float32ConstPtr& angle_msg);
+void setDrive(float speed);
 void stop_robot();
 
 #define BASE_FRAME  "base_link"
@@ -15,17 +15,17 @@ void stop_robot();
 #define MAX_SPEED         0.5
 #define MAX_TURN          0.8
 #define OPTIMUM_DIST      3.0
-// #define SLOWDOWN_DIST     1.0
 
 // globals
-double last_angle_time;
-bool paused;
-float angle;
+double last_angle_time = -5;
+float angle = 0;
+enum Action {Turn, Follow, Nothing};
+Action action = Nothing;
 
 ros::Subscriber scanSub ;
 ros::Subscriber commandSub;
 ros::Subscriber angleSub;
-ros::Publisher twistPub;
+ros::Publisher  twistPub;
 
 int main( int argc, char** argv ) {
 
@@ -33,10 +33,6 @@ int main( int argc, char** argv ) {
     ros::init(argc, argv, "simple_follow");
     ros::NodeHandle nh;
     ros::Rate r(1);
-
-    last_angle_time = -5;
-    paused = true;
-    angle = 0;
 
     // subscribers and publishers
     scanSub    = nh.subscribe<sensor_msgs::LaserScan>("scan", 1, &cb_scan);
@@ -46,8 +42,8 @@ int main( int argc, char** argv ) {
 
     // pretty much done
     while (ros::ok()) {
-        ROS_INFO("Spinning");
-        ros::spin();
+        ros::spinOnce();
+        if (action == Nothing) stop_robot();
     }
 
     stop_robot();
@@ -55,39 +51,38 @@ int main( int argc, char** argv ) {
 
 void stop_robot() {
     geometry_msgs::Twist t;
-    t.linear.x = t.linear.y = t.linear.z = 0;
+    t.linear.x  = t.linear.y  = t.linear.z  = 0;
     t.angular.x = t.angular.y = t.angular.z = 0;
     twistPub.publish(t);
 }
 
-void spin_robot() {
-    geometry_msgs::Twist t;
-    t.linear.x = t.linear.y = t.linear.z = 0;
-    t.angular.x = t.angular.y = 0;
-    t.angular.z = 0.2;
-    twistPub.publish(t);
-}
+// void spin_robot() {
+//     geometry_msgs::Twist t;
+//     t.linear.x = t.linear.y = t.linear.z = 0;
+//     t.angular.x = t.angular.y = 0;
+//     t.angular.z = 0.2;
+//     twistPub.publish(t);
+// }
 
 void cb_scan(const sensor_msgs::LaserScanConstPtr& scan) {
 
-    if (paused) {
-        ROS_INFO("paused");
+    if (action == Nothing) {
+        ROS_INFO("Paused");
         stop_robot();
         return;
-    }
-
-
-    // Really Lost?
-    if (ros::Time::now().toSec() - last_angle_time > 4) {
-        ROS_INFO("Really lost");
-        spin_robot();
+    } else if (action == Turn)
+        ROS_INFO("Turning");
+        setDrive(0);
         return;
     }
 
+    // ----------------   action == Follow --------------------
+
+    // Really Lost?
+    if (ros::Time::now().toSec() - last_angle_time > 4) action = Nothing;
+
     // Lost?
-    if (ros::Time::now().toSec() - last_angle_time > 1) {
-        angle = 0;
-    }
+    if (ros::Time::now().toSec() - last_angle_time > 1) angle = 0;
 
     // Turn laser scan into a point cloud
     // I HAVE NO IDEA WHAT HE FUCK IS HAPPENING HERE
@@ -105,38 +100,44 @@ void cb_scan(const sensor_msgs::LaserScanConstPtr& scan) {
         }
     }
 
+    ROS_INFO("xminFront: %.2f", XMinFront);
+
     // if we found a minimum laser in front, calibrate speed toward an optimum distance
-    float drive = (XMinFront == INFINITY) ? 0 : (XMinFront - OPTIMUM_DIST) / 10.0;
+    float speed = (XMinFront == INFINITY) ? 0 : (XMinFront - OPTIMUM_DIST) / 10.0;
 
     // cut excess speed off
-    if (fabs(drive) > 1) drive = drive / fabs(drive);
+    if (fabs(speed) > 1) speed /= fabs(speed);
 
-    // if the robot is getting close to something, slow it down
-    ROS_INFO("Drive: %.2f, angle: %.2f", drive, angle * MAX_TURN);
+    setDrive(speed);
+}
 
-
+void setDrive(float speed) {
     geometry_msgs::Twist t;
-    t.linear.y = t.linear.z = 0;
-    t.linear.x = drive * MAX_SPEED;
+    t.linear.y  = t.linear.z  = 0;
     t.angular.x = t.angular.y = 0;
+
+    t.linear.x  = speed * MAX_SPEED;
     t.angular.z = angle * MAX_TURN;
 
+    ROS_INFO("Drive: %.2f, angle: %.2f", speed, angle * MAX_TURN);
+
     twistPub.publish(t);
-    angle -= 0.7 * angle * MAX_TURN;
+    angle *= 0.8;
 }
 
 void cb_angle(const std_msgs::Float32ConstPtr& angle_msg) {
     last_angle_time = ros::Time::now().toSec();
-    angle = angle_msg->data / 20.0 * -1.0;
-    if (abs(angle) > 1) angle = angle / abs(angle);
+    angle = -angle_msg->data / 20.0
+    if (fabs(angle) > 1) angle /= fabs(angle);
 }
 
+
 void cb_command(const std_msgs::StringConstPtr& command) {
-    ROS_INFO("Recieved %s message.\n", command->data.c_str());
-    if (strcasecmp(command->data.c_str(), "start") == 0 )  {
-        paused = false;
-    } else if (strcasecmp(command->data.c_str(), "stop") == 0) {
-        paused = true;
-        stop_robot();
-    }
+
+    const auto string = command->data.c_str();
+    ROS_INFO("Recieved %s message.\n", string);
+
+         if (strcasecmp(string, "follow") == 0) action = Follow;
+    else if (strcasecmp(string, "turn")   == 0) action = Turn;
+    else if (strcasecmp(string, "stop")   == 0) action = Nothing;
 }
