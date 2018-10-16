@@ -41,6 +41,7 @@ ros::Publisher  anglePub;
 void imageCallback(const sensor_msgs::CompressedImage::ConstPtr& msg);
 void sendCommand(std::string string);
 void sendAngle(float angle);
+float toAngle(float x);
 
 Person centralPersonIdx(Array<float> poseKeypoints);
 float compareLimbHistograms(Array<float> poseKeypoints);
@@ -162,9 +163,8 @@ int main(int argc, char** argv ) {
         const auto poseKeypoints = poseExtractorCaffe.getPoseKeypoints();
 
         // find correspondences.
-        sendCommand("follow");
         cvtColor(rgbImagePtr->image, hsvImage, cv::COLOR_BGR2HSV);
-        compareLimbHistograms(poseKeypoints);
+        float angle = compareLimbHistograms(poseKeypoints);
 
         if (IMAGE_PRINTING) {
             sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", rgbImagePtr->image).toImageMsg();
@@ -245,17 +245,15 @@ float compareLimbHistograms(Array<float> poseKeypoints) {
 
         if (numLimbs > MIN_MATCHES && avProb > bestProb) {
             bestProb  = avProb;
-            float width = (float) IMG_WIDTH;
-            bestAngle = (avgXOffest - width/2) / (width/2) * (70/2) ;
+            bestAngle = toAngle(avgXOffest);
         }
     }
 
     // publish the best angle if the correlation is high enough
     if (bestProb > MIN_CORRELATION) {
         ROS_INFO("found person with correlation %lf at angle %lf", bestProb, bestAngle);
-        std_msgs::Float32 msg;
-        msg.data = bestAngle;
-        anglePub.publish(msg);
+        sendCommand("follow");
+        sendAngle(bestAngle);
     }
 }
 

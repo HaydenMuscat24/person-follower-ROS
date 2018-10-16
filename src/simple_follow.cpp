@@ -58,23 +58,25 @@ void stop_robot() {
 
 void cb_scan(const sensor_msgs::LaserScanConstPtr& scan) {
 
-    if (action == Nothing) {
-        ROS_INFO("Paused");
-        stop_robot();
-        return;
-    } else if (action == Turn) {
-        ROS_INFO("Turning");
-        setDrive(0);
-        return;
+    switch (action) {
+        case Nothing:   stop_robot();   return;
+        case Turn:      setDrive(0);    return;
     }
 
     // ----------------   action == Follow --------------------
 
     // Really Lost?
-    if (ros::Time::now().toSec() - last_angle_time > 4) action = Nothing;
+    if (ros::Time::now().toSec() - last_angle_time > 4) {
+        ROS_INFO("Lost for 4 seconds. stopping");
+        action = Nothing;
+        return;
+    }
 
     // Lost?
-    if (ros::Time::now().toSec() - last_angle_time > 1) angle = 0;
+    if (ros::Time::now().toSec() - last_angle_time > 1 && angle != 0) {
+        ROS_INFO("Lost for 1 second. moving straight");
+        angle = 0;
+    }
 
     // Turn laser scan into a point cloud
     // I HAVE NO IDEA WHAT HE FUCK IS HAPPENING HERE
@@ -91,8 +93,6 @@ void cb_scan(const sensor_msgs::LaserScanConstPtr& scan) {
             if (point.x() < XMinFront) XMinFront = point.x();
         }
     }
-
-    ROS_INFO("xminFront: %.2f", XMinFront);
 
     // if we found a minimum laser in front, calibrate speed toward an optimum distance
     float speed = (XMinFront == INFINITY) ? 1 : (XMinFront - OPTIMUM_DIST) / 10.0;
@@ -127,9 +127,11 @@ void cb_angle(const std_msgs::Float32ConstPtr& angle_msg) {
 void cb_command(const std_msgs::StringConstPtr& command) {
 
     const auto string = command->data.c_str();
-    ROS_INFO("Recieved %s message.\n", string);
 
-         if (strcasecmp(string, "follow") == 0) action = Follow;
-    else if (strcasecmp(string, "turn")   == 0) action = Turn;
-    else if (strcasecmp(string, "stop")   == 0) action = Nothing;
+         if (strcasecmp(string, "follow") == 0)
+             {action = Follow;   ROS_INFO("Following"); }
+    else if (strcasecmp(string, "turn")   == 0)
+             {action  = Turn;     ROS_INFO("Turning"); }
+    else if (strcasecmp(string, "stop")   == 0)
+             {action  = Nothing;  ROS_INFO("Stopped"); }
 }
