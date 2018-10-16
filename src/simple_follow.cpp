@@ -3,6 +3,7 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
+#include <tf/transform_listener.h>
 
 void cb_scan(const sensor_msgs::LaserScanConstPtr& scan);
 void cb_command(const std_msgs::StringConstPtr& command);
@@ -10,7 +11,6 @@ void cb_angle(const std_msgs::Float32ConstPtr& angle_msg);
 void setDrive(float speed);
 void stop_robot();
 
-#define BASE_FRAME  "base_link"
 #define ROBOT_RADIUS      0.20
 #define MAX_SPEED         0.5
 #define MAX_TURN          0.8
@@ -56,21 +56,13 @@ void stop_robot() {
     twistPub.publish(t);
 }
 
-// void spin_robot() {
-//     geometry_msgs::Twist t;
-//     t.linear.x = t.linear.y = t.linear.z = 0;
-//     t.angular.x = t.angular.y = 0;
-//     t.angular.z = 0.2;
-//     twistPub.publish(t);
-// }
-
 void cb_scan(const sensor_msgs::LaserScanConstPtr& scan) {
 
     if (action == Nothing) {
         ROS_INFO("Paused");
         stop_robot();
         return;
-    } else if (action == Turn)
+    } else if (action == Turn) {
         ROS_INFO("Turning");
         setDrive(0);
         return;
@@ -103,7 +95,7 @@ void cb_scan(const sensor_msgs::LaserScanConstPtr& scan) {
     ROS_INFO("xminFront: %.2f", XMinFront);
 
     // if we found a minimum laser in front, calibrate speed toward an optimum distance
-    float speed = (XMinFront == INFINITY) ? 0 : (XMinFront - OPTIMUM_DIST) / 10.0;
+    float speed = (XMinFront == INFINITY) ? 1 : (XMinFront - OPTIMUM_DIST) / 10.0;
 
     // cut excess speed off
     if (fabs(speed) > 1) speed /= fabs(speed);
@@ -122,12 +114,12 @@ void setDrive(float speed) {
     ROS_INFO("Drive: %.2f, angle: %.2f", speed, angle * MAX_TURN);
 
     twistPub.publish(t);
-    angle *= 0.8;
+    angle *= 0.4;
 }
 
 void cb_angle(const std_msgs::Float32ConstPtr& angle_msg) {
     last_angle_time = ros::Time::now().toSec();
-    angle = -angle_msg->data / 20.0
+    angle = -angle_msg->data / 20.0;
     if (fabs(angle) > 1) angle /= fabs(angle);
 }
 

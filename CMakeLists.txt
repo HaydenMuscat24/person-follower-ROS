@@ -71,8 +71,8 @@ add_executable(openPoseTracker
     src/openPoseTracker.cpp
 )
 
-add_executable(initaliser
-    src/initaliser.cpp
+add_executable(killSwitch
+    src/killSwitch.cpp
 )
 
 add_executable(simplefollow
@@ -89,7 +89,7 @@ target_link_libraries(openPoseTracker
 	gflags
 )
 
-target_link_libraries(initaliser
+target_link_libraries(killSwitch
   ${catkin_LIBRARIES}
 )
 
