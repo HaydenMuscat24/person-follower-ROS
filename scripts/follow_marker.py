@@ -6,7 +6,7 @@ from geometry_msgs.msg import Point, Twist
 from std_msgs.msg import String
 from sensor_msgs.msg import LaserScan
 from math import atan2
-
+import math
 my_x = 0.0
 my_y = 0.0
 my_theta = 0.0
@@ -33,6 +33,8 @@ def newMarker(m):
 	global goal_x
 	global goal_y
 
+	print "New marker received"
+
 	goal_x = m.pose.position.x
 	goal_y = m.pose.position.y
 	return
@@ -53,10 +55,10 @@ def newScan(scan):
 	global drive
 
 	ROBOT_RADIUS      = 0.20
-	SLOWDOWN_DIST     = 0.5
+	SLOWDOWN_DIST     = 2.0
 	MAX_SPEED         = 0.5
 	MAX_TURN          = 0.5
-	MIN_APPROACH_DIST = 0.2
+	MIN_APPROACH_DIST = 1.0
 
 	distance = 1000000
 	laser_angle = scan.angle_min
@@ -70,7 +72,7 @@ def newScan(scan):
 		laser_angle += scan.angle_increment
 		n += 1
 
-	print("distance = ", distance)
+	
 
 	if 0.01 < distance < SLOWDOWN_DIST:
 		drive = (distance - MIN_APPROACH_DIST) / (SLOWDOWN_DIST - MIN_APPROACH_DIST)
@@ -92,6 +94,8 @@ twistPub 	= rospy.Publisher('cmd_vel', Twist, queue_size=1)
 speed = Twist()
 r = rospy.Rate(10)
 
+print "Starting main loop"
+
 while not rospy.is_shutdown():
 	if paused:
 		speed.linear.x = 0.0
@@ -110,9 +114,19 @@ while not rospy.is_shutdown():
 		angle_to_goal = atan2(remaining_y, remaining_x)
 
 		if abs(angle_to_goal - my_theta) > 0.1:
-			speed.linear.x = 0.0
-			speed.angular.z = 0.1
+			if (angle_to_goal - my_theta) > math.pi:
+				my_theta += 2*math.pi
+			elif (my_theta - angle_to_goal) > math.pi:
+				angle_to_goal += 2*math.pi
+				
+			if angle_to_goal > my_theta:
+				speed.linear.x = 0.0
+				speed.angular.z = 0.5
+			else:
+				speed.linear.x = 0.0
+				speed.angular.z = -0.5
 		else:
+			print "Driving forwards"
 			speed.linear.x = 0.5 * drive
 			speed.angular.z = 0.0
 
