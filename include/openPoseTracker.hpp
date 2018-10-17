@@ -94,7 +94,7 @@ const Limb limbs[NUM_LIMBS] {
 typedef std::vector<float> Histogram;
 
 // for use in printing boxes
-cv::Mat hsvToBGR(HUE_BINS+1, 1, CV_8UC3);
+cv::Mat hsvToBGR(HUE_BINS+2, 1, CV_8UC3);
 
 /*
 commands to put back in if you want to render the poseKeypoints

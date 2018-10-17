@@ -10,12 +10,12 @@
 
 // for use in the histograms
 #define INIT_HIST_SAVES 20
-#define MIN_BRIGHTNESS  10
+#define MIN_BRIGHTNESS  15
 #define SAT_FOR_GREY    30
 
 // minimum correlation to decide its the original person
 // and the minimum number of limbs that have had to have been measured to get such
-#define MIN_CORRELATION 0.70
+#define MIN_CORRELATION 0.75
 #define MIN_MATCHES     5
 
 using namespace op;
@@ -37,7 +37,7 @@ ros::Publisher  imgPub;
 ros::Publisher  cmdPub;
 ros::Publisher  anglePub;
 
-// function declarations
+// function declarationsss
 void imageCallback(const sensor_msgs::CompressedImage::ConstPtr& msg);
 void sendCommand(std::string string);
 void sendAngle(float angle);
@@ -73,13 +73,15 @@ int main(int argc, char** argv ) {
         for (int i=0; i< HUE_BINS; i++) {
             hsvToBGR.at<cv::Vec3b>(cv::Point(i, 0)) = cv::Vec3b((int)binSize*(0.5+i), 250, 240);
         }
+        // grey bins
         hsvToBGR.at<cv::Vec3b>(cv::Point(HUE_BINS, 0)) = cv::Vec3b(0, 0, 180);
+        hsvToBGR.at<cv::Vec3b>(cv::Point(HUE_BINS+1, 0)) = cv::Vec3b(0, 0, 40);
         cv::cvtColor(hsvToBGR, hsvToBGR, CV_HSV2BGR);
     }
     avgBin = 1.0 / (float)(HUE_BINS + 1);
     for (int i=0; i<NUM_LIMBS; i++) {
         histsToSave[i] = INIT_HIST_SAVES;
-        originalLimbHist[i] = Histogram(HUE_BINS + 1, 0.0);
+        originalLimbHist[i] = Histogram(HUE_BINS + 2, 0.0);
     }
 
     // Step 2 use flags to set up some network parameters
@@ -251,7 +253,7 @@ float compareLimbHistograms(Array<float> poseKeypoints) {
 
     // publish the best angle if the correlation is high enough
     if (bestProb > MIN_CORRELATION) {
-        ROS_INFO("found person with correlation %lf at angle %lf", bestProb, bestAngle);
+        ROS_INFO("Matched a person correlation %lf at angle %lf", bestProb, bestAngle);
         sendCommand("follow");
         sendAngle(bestAngle);
     }
@@ -331,7 +333,8 @@ Histogram getLimbHistogram(cv::Point2f pA, cv::Point2f pB, float ratio) {
 
     // count up the pixels as you go
     Histogram histogram(HUE_BINS, 0);
-    float numGreys = 1; // start at 1 to avoid odd possibility of no pixels
+    float numlightGreys = 1; // start at 1 to avoid odd possibility of no pixels
+    float numDarkGreys  = 1; // start at 1 to avoid odd possibility of no pixels
 
     // horizontal or vertical sweeps depend on longer side. if x is
     // larger, then doing vertical strides
@@ -354,9 +357,14 @@ Histogram getLimbHistogram(cv::Point2f pA, cv::Point2f pB, float ratio) {
 
                 cv::Vec3b hsv = hsvImage.at<cv::Vec3b>(cv::Point(x, y));
                 // ignore if too dark, or add as grey if not saturated
-                if      (hsv[2] < MIN_BRIGHTNESS) continue;
-                else if (hsv[1] < SAT_FOR_GREY) numGreys ++;
-                else                  histogram[hsv[0]*HUE_BINS/180]++;
+                if      (hsv[2] < MIN_BRIGHTNESS) numDarkGreys ++;
+                else if (hsv[1] < SAT_FOR_GREY) {
+                    if (hsv[2] < 40) numDarkGreys ++;
+                    else numlightGreys ++;
+                } else  {
+                    histogram[hsv[0]*HUE_BINS/180]++;
+                }
+
 
                 if (IMAGE_PRINTING && LIMB_PRINTING) highlightPixel(x, y);
             }
@@ -382,9 +390,13 @@ Histogram getLimbHistogram(cv::Point2f pA, cv::Point2f pB, float ratio) {
 
                 cv::Vec3b hsv = hsvImage.at<cv::Vec3b>(cv::Point(x, y));
                 // ignore if too dark, or add as grey if not saturated
-                if      (hsv[2] < MIN_BRIGHTNESS) continue;
-                else if (hsv[1] < SAT_FOR_GREY) numGreys ++;
-                else                  histogram[hsv[0]*HUE_BINS/180]++;
+                if      (hsv[2] < MIN_BRIGHTNESS) numDarkGreys ++;
+                else if (hsv[1] < SAT_FOR_GREY) {
+                    if (hsv[2] < 40) numDarkGreys ++;
+                    else numlightGreys ++;
+                } else  {
+                    histogram[hsv[0]*HUE_BINS/180]++;
+                }
 
                 if (IMAGE_PRINTING && LIMB_PRINTING) highlightPixel(x, y);
             }
@@ -395,7 +407,8 @@ Histogram getLimbHistogram(cv::Point2f pA, cv::Point2f pB, float ratio) {
     smoothOutHistogram(histogram);
 
     // add the grey
-    histogram.push_back(numGreys);
+    histogram.push_back(numlightGreys);
+    histogram.push_back(numDarkGreys);
 
     // normalise
     normaliseHistogram(histogram);
@@ -419,7 +432,9 @@ void paintHistogram(cv::Point point, Histogram &hist) {
 }
 
 void smoothOutHistogram(Histogram &hist) {
-    Histogram temp(HUE_BINS, 0);
+
+    // hues
+    Histogram temp(hist.size(), 0);
     for (int i = 0; i < HUE_BINS; i++) {
 
         // left
@@ -433,7 +448,13 @@ void smoothOutHistogram(Histogram &hist) {
         if (i == HUE_BINS-1) temp[i] += hist[0]   * 0.1;
         else                 temp[i] += hist[i+1] * 0.1;
     }
-    for (int i = 0; i < HUE_BINS-1; i++) hist[i] = temp[i];
+
+    // greys
+    temp[HUE_BINS]   = hist[HUE_BINS] * 0.8 + hist[HUE_BINS+1] * 0.2;
+    temp[HUE_BINS+1] = hist[HUE_BINS+1] * 0.8 + hist[HUE_BINS] * 0.2;
+
+    // put back in original
+    for (int i = 0; i < hist.size(); i++) hist[i] = temp[i];
 }
 
 void normaliseHistogram(Histogram &hist) {
