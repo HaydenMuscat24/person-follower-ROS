@@ -19,7 +19,7 @@
 
 // // OpenPose
 DEFINE_string(model_pose,   "MPI_4_layers", "`COCO` (too larger for my gpu), `MPI`, `MPI_4_layers`.");
-DEFINE_string(model_folder, "/home/hayden/openpose/models/", "Folder path for the models.");
+DEFINE_string(model_folder, "/home/sassbot/openpose/models/", "Folder path for the models.");
 DEFINE_string(net_resolution,           "-1x240",       "Multiples of 16. If it is increased, the accuracy potentially increases. If it is"
                                                         " decreased, the speed increases. For maximum speed-accuracy balance, it should keep the"
                                                         " closest aspect ratio possible to the images or videos to be processed. Using `-1` in"

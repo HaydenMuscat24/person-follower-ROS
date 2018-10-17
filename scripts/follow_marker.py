@@ -47,6 +47,7 @@ def newCommand(c):
 	print(c)
 	if c.data == "start":
 		paused = False
+		print("unpaused")
 	elif c.data == "stop":
 		paused = True;
 
@@ -117,34 +118,33 @@ while not rospy.is_shutdown():
 		twistPub.publish(speed)
 		r.sleep()
 		continue
-
+    
 	remaining_x = goal_x - my_x
 	remaining_y = goal_y - my_y
 
-	if sqrt(remaining_x * remaining_x + remaining_y * remaining_y) < 0.4:
+	if abs(remaining_x) < 0.4 and abs(remaining_y) < 0.4:
 		if turn_left:
 			speed.linear.x = 0.0
-			speed.angular.z = 0.1
+			speed.angular.z = 0.2
 		else:
 			speed.linear.x = 0.0
-			speed.angular.z = -0.1
+			speed.angular.z = -0.2
 	else:
 		angle_to_goal = atan2(remaining_y, remaining_x)
+		
+		#clips angle to between -1 and 1
+		angle = angle_to_goal - my_theta
+		angle /= 2
+		if (abs(angle) > 1):
+			angle /= abs(angle)
+		
+		speed.angular.z = angle/2
 
 		if abs(angle_to_goal - my_theta) > 0.2:
-
-            #clips angle to between -1 and 1
-            angle = angle_to_goal - my_theta
-            angle /= 2
-            if (abs(angle) > 1):
-                angle /= abs(angle)
-
-			speed.linear.x = 0.0
-			speed.angular.z = angle
+			speed.linear.x = 0.1 * drive
 		else:
-			print "Driving forwards"
 			speed.linear.x = 0.5 * drive
-			speed.angular.z = 0.0
+		
 
 	twistPub.publish(speed)
 	r.sleep()

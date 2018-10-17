@@ -22,7 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## OpenCV
 find_package(OpenCV)
 find_package(CUDA)
-find_package(gflags REQUIRED)
+#find_package(gflags REQUIRED)
 find_package(OpenPose)
 
 # QT4 required for RViz plugins
