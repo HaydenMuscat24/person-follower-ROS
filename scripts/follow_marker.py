@@ -3,10 +3,11 @@ from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker
 from tf.transformations import euler_from_quaternion
 from geometry_msgs.msg import Point, Twist
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32
 from sensor_msgs.msg import LaserScan
-from math import atan2
 import math
+from math import atan2
+
 my_x = 0.0
 my_y = 0.0
 my_theta = 0.0
@@ -14,6 +15,7 @@ goal_x = 0.0
 goal_y = 0.0
 paused = True
 drive = 1
+turn_left = True
 
 
 def newOdom(o):
@@ -45,6 +47,7 @@ def newCommand(c):
 	print(c)
 	if c.data == "start":
 		paused = False
+		print("unpaused")
 	elif c.data == "stop":
 		paused = True;
 
@@ -72,7 +75,7 @@ def newScan(scan):
 		laser_angle += scan.angle_increment
 		n += 1
 
-	
+
 
 	if 0.01 < distance < SLOWDOWN_DIST:
 		drive = (distance - MIN_APPROACH_DIST) / (SLOWDOWN_DIST - MIN_APPROACH_DIST)
@@ -85,11 +88,23 @@ def newScan(scan):
 	return
 
 
+def newAngle(a):
+	global turn_left
+
+	if a.data < 0:
+		turn_left = True
+	else:
+		turn_left = False
+
+	return
+
+
 rospy.init_node("speed_controller")
 odomSub 	= rospy.Subscriber("/odom", Odometry, newOdom)
 markerSub 	= rospy.Subscriber("/marker", Marker, newMarker, queue_size=1)
 commandSub 	= rospy.Subscriber("cmd", String, newCommand, queue_size=1)
 scanSub 	= rospy.Subscriber("/scan", LaserScan, newScan, queue_size=1)
+angleSub	= rospy.Subscriber("/angle", Float32, newAngle, queue_size=1)
 twistPub 	= rospy.Publisher('cmd_vel', Twist, queue_size=1)
 speed = Twist()
 r = rospy.Rate(10)
@@ -107,28 +122,29 @@ while not rospy.is_shutdown():
 	remaining_x = goal_x - my_x
 	remaining_y = goal_y - my_y
 
-	if my_x - 0.2 < goal_x and goal_x < my_x + 0.2 and my_y - 0.2 < goal_y and goal_y < my_y + 0.2:
-		speed.linear.x = 0.0
-		speed.angular.z = 0.1
+	if abs(remaining_x) < 0.4 and abs(remaining_y) < 0.4:
+		if turn_left:
+			speed.linear.x = 0.0
+			speed.angular.z = 0.2
+		else:
+			speed.linear.x = 0.0
+			speed.angular.z = -0.2
 	else:
 		angle_to_goal = atan2(remaining_y, remaining_x)
 
-		if abs(angle_to_goal - my_theta) > 0.1:
-			if (angle_to_goal - my_theta) > math.pi:
-				my_theta += 2*math.pi
-			elif (my_theta - angle_to_goal) > math.pi:
-				angle_to_goal += 2*math.pi
-				
-			if angle_to_goal > my_theta:
-				speed.linear.x = 0.0
-				speed.angular.z = 0.5
-			else:
-				speed.linear.x = 0.0
-				speed.angular.z = -0.5
+		#clips angle to between -1 and 1
+		angle = angle_to_goal - my_theta
+		angle /= 2
+		if (abs(angle) > 1):
+			angle /= abs(angle)
+
+		speed.angular.z = angle/2
+
+		if abs(angle_to_goal - my_theta) > 0.2:
+			speed.linear.x = 0.1 * drive
 		else:
-			print "Driving forwards"
 			speed.linear.x = 0.5 * drive
-			speed.angular.z = 0.0
+
 
 	twistPub.publish(speed)
 	r.sleep()
