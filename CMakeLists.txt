@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(pose)
+project(stalker)
 
 add_definitions(-std=c++11)
 add_definitions(-DUSE_CAFFE)
@@ -22,7 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## OpenCV
 find_package(OpenCV)
 find_package(CUDA)
-#find_package(gflags REQUIRED)
+# find_package(gflags REQUIRED)
 find_package(OpenPose)
 
 # QT4 required for RViz plugins
